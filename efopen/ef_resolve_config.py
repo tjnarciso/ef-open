@@ -149,7 +149,15 @@ def merge_files(context):
         cmd = ["yamllint", "-d", "relaxed","-f", "parsable", f.name ]
         yamllint = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = yamllint.communicate()
-        print(stdout, stderr)
+        if stderr:
+          print(stderr)
+        split_body = rendered_body.splitlines()
+        for line in stdout.splitlines():
+          path, line, column, message = line.split(":")
+          print('{}:{}:{}'.format(line, column, message))
+          if "error" in message:
+            # printing line - 1 because lists start at 0, but files at 1
+            print("\t{!r}".format(split_body[int(line) - 1]))
         if yamllint.returncode:
           fail("YAML failed linting process.")
     else:
