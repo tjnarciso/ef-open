@@ -28,6 +28,7 @@ import argparse
 import json
 import subprocess
 import sys
+import tempfile
 from os.path import abspath, dirname, normpath
 
 import yaml
@@ -141,14 +142,16 @@ def merge_files(context):
       except ValueError as e:
         fail("JSON failed linting process.", e)
     elif context.template_path.endswith((".yml", ".yaml")):
-      cmd = ["yamllint", "-d", "relaxed", context.template_path]
-      yamllint = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-      stdout, stderr = yamllint.communicate()
-      print(stdout, stderr)
-      if yamllint.returncode != 0:
-        fail("YAML failed linting process.")
-      else:
-        print("YAML passed linting process.")
+      with tempfile.NamedTemporaryFile() as f:
+        f.write(rendered_body)
+        f.flush()
+
+        cmd = ["yamllint", "-d", "relaxed","-f", "parsable", f.name ]
+        yamllint = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = yamllint.communicate()
+        print(stdout, stderr)
+        if yamllint.returncode:
+          fail("YAML failed linting process.")
     else:
       print("Template is not a yaml or json, skipping lint.")
 
